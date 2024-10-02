@@ -1,5 +1,6 @@
 package com.colak.springtutorial.config;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.server.authentication.AuthenticationWebFilter;
@@ -14,23 +15,28 @@ public class JwtAuthenticationFilter extends AuthenticationWebFilter {
 
     public JwtAuthenticationFilter(JwtAuthenticationManager jwtAuthenticationManager) {
         super(jwtAuthenticationManager);
+
+        // Set the converter that will convert authorization header to UsernamePasswordAuthenticationToken
         setServerAuthenticationConverter(this::extractAuthentication);
     }
 
+    // This is a ServerAuthenticationConverter
     private Mono<Authentication> extractAuthentication(ServerWebExchange exchange) {
         String token = extractToken(exchange);
         if (token == null || token.isEmpty()) {
             return Mono.empty();
         }
 
+        // Put token as credentials
         return Mono.just(new UsernamePasswordAuthenticationToken(null, token));
     }
 
     private String extractToken(ServerWebExchange exchange) {
-        List<String> authHeaders = exchange.getRequest().getHeaders().getOrEmpty("Authorization");
+        List<String> authHeaders = exchange.getRequest().getHeaders().getOrEmpty(HttpHeaders.AUTHORIZATION);
         if (authHeaders.isEmpty()) {
             return null;
         }
-        return authHeaders.get(0).replace("Bearer ", "");
+        // This is same as substring(7)
+        return authHeaders.getFirst().replace("Bearer ", "");
     }
 }
